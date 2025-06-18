@@ -232,6 +232,123 @@ http {
             try_files $uri $uri/ @index;
         }
 
+        location = /webshare/ {
+            allow all;
+
+            add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate";
+            add_header Pragma "no-cache";
+            add_header Expires "0";
+            expires -1;
+
+            # Security Headers
+            add_header Strict-Transport-Security "max-age=0; includeSubDomains; preload" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Permissions-Policy "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()" always;
+            add_header Referrer-Policy "strict-origin" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+
+            root /mnt/tank/webshare/truenas-webshare-auth;
+            try_files /index.html =404;
+        }
+
+        location /webshare {
+            allow all;
+
+            # `allow`/`deny` are not allowed in `if` blocks so we'll have to make that check in the middleware itself.
+            proxy_set_header X-Real-Remote-Addr $remote_addr;
+            proxy_set_header X-Https $https;
+
+            add_header Cache-Control "must-revalidate";
+            add_header Etag "${system_version}";
+
+            # Security Headers
+            add_header Strict-Transport-Security "max-age=0; includeSubDomains; preload" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Permissions-Policy "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()" always;
+            add_header Referrer-Policy "strict-origin" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+
+            alias /mnt/tank/webshare/truenas-webshare-auth;
+            try_files $uri $uri/ @index;
+        }
+
+        location = /webshare/browser/ {
+            allow all;
+
+            add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate";
+            add_header Pragma "no-cache";
+            add_header Expires "0";
+            expires -1;
+
+            # Security Headers
+            add_header Strict-Transport-Security "max-age=0; includeSubDomains; preload" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Permissions-Policy "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()" always;
+            add_header Referrer-Policy "strict-origin" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+
+            root /mnt/tank/webshare/truenas-file-manager;
+            try_files /index.html =404;
+        }
+
+        location /webshare/browser {
+            allow all;
+
+            # `allow`/`deny` are not allowed in `if` blocks so we'll have to make that check in the middleware itself.
+            proxy_set_header X-Real-Remote-Addr $remote_addr;
+            proxy_set_header X-Https $https;
+
+            add_header Cache-Control "must-revalidate";
+            add_header Etag "${system_version}";
+
+            # Security Headers
+            add_header Strict-Transport-Security "max-age=0; includeSubDomains; preload" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Permissions-Policy "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()" always;
+            add_header Referrer-Policy "strict-origin" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+
+            alias /mnt/tank/webshare/truenas-file-manager;
+            try_files $uri $uri/ @index;
+        }
+
+        # Proxy WebSocket connections to the auth service
+        location /webshare/ws {
+            proxy_pass http://unix:/var/run/webshare/auth.sock:/ws;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Real-Remote-Addr $remote_addr;
+            proxy_set_header X-Real-Remote-Port $remote_port;
+            proxy_set_header X-Https $https;
+
+            # WebSocket timeouts
+            proxy_read_timeout 86400;
+            proxy_connect_timeout 86400;
+            proxy_send_timeout 86400;
+        }
+
+        # Health check endpoint
+        location /webshare/health {
+            proxy_pass http://unix:/var/run/webshare/auth.sock:/health;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Include all webshare session configurations
+        include /etc/nginx/webshare-includes/*.conf;
+
         location /websocket {
             allow all;  # This is handled by `Middleware.ws_can_access` because if we return HTTP 403, browser security
                         # won't allow us to understand that connection error was due to client IP not being allowlisted.
