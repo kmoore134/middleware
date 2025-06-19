@@ -46,6 +46,9 @@ class UserEntry(BaseModel):
     full_name: str
     builtin: bool
     smb: bool = True
+    webshare: bool = False
+    """Specifies whether the user should be allowed access to WebShare file
+    manager."""
     userns_idmap: Literal['DIRECT', None] | ContainerXID = None
     """
     Specifies the subuid mapping for this user. If DIRECT then the UID will be
