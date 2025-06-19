@@ -248,7 +248,7 @@ http {
             add_header Referrer-Policy "strict-origin" always;
             add_header X-Frame-Options "SAMEORIGIN" always;
 
-            root /mnt/tank/webshare/truenas-webshare-auth;
+            root /usr/share/truenas-webshare/truenas-webshare-auth-ui;
             try_files /index.html =404;
         }
 
@@ -270,7 +270,7 @@ http {
             add_header Referrer-Policy "strict-origin" always;
             add_header X-Frame-Options "SAMEORIGIN" always;
 
-            alias /mnt/tank/webshare/truenas-webshare-auth;
+            alias /usr/share/truenas-webshare/truenas-webshare-auth-ui;
             try_files $uri $uri/ @index;
         }
 
@@ -290,7 +290,7 @@ http {
             add_header Referrer-Policy "strict-origin" always;
             add_header X-Frame-Options "SAMEORIGIN" always;
 
-            root /mnt/tank/webshare/truenas-file-manager;
+            root /usr/share/truenas-webshare/truenas-file-manager-ui;
             try_files /index.html =404;
         }
 
@@ -312,7 +312,7 @@ http {
             add_header Referrer-Policy "strict-origin" always;
             add_header X-Frame-Options "SAMEORIGIN" always;
 
-            alias /mnt/tank/webshare/truenas-file-manager;
+            alias /usr/share/truenas-webshare/truenas-file-manager-ui;
             try_files $uri $uri/ @index;
         }
 
