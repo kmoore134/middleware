@@ -285,7 +285,7 @@ class WebShareService(SystemServiceService):
 
         # Create config directories
         config_dirs = [
-            '/etc/truenas-webshare-auth',
+            '/etc/webshare-auth',
             '/etc/truenas-file-manager',
             '/etc/truesearch'
         ]
@@ -307,7 +307,7 @@ class WebShareService(SystemServiceService):
             }
         }
 
-        with open('/etc/truenas-webshare-auth/config.json', 'w') as f:
+        with open('/etc/webshare-auth/config.json', 'w') as f:
             json.dump(auth_config, f, indent=2)
 
         # Generate truenas-file-manager config
