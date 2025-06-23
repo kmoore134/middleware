@@ -194,7 +194,9 @@ class WebShareService(SystemServiceService):
             return
 
         # Check if path exists
-        if not await self.middleware.call('filesystem.is_path_accessible', path):
+        try:
+            await self.middleware.call('filesystem.stat', path)
+        except Exception:
             verrors.add(
                 f'{field_base}.{field_name}',
                 f'Path does not exist or is not accessible: {path}'
