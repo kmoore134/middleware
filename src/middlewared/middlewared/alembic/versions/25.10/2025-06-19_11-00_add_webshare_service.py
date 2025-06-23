@@ -37,7 +37,7 @@ def upgrade():
         sa.Column('srv_search_archive_max_size', sa.Integer(), nullable=False),
         sa.Column('srv_search_index_max_size', sa.Integer(), nullable=False),
         sa.Column('srv_search_index_cleanup_enabled', sa.Boolean(), nullable=False),
-        sa.Column('srv_search_index_cleanup_threshold', sa.Float(), nullable=False),
+        sa.Column('srv_search_index_cleanup_threshold', sa.Integer(), nullable=False),
         sa.Column('srv_search_pruning_enabled', sa.Boolean(), nullable=False),
         sa.Column('srv_search_pruning_schedule', sa.String(length=20), nullable=False),
         sa.Column('srv_search_pruning_start_time', sa.String(length=10), nullable=False),
@@ -88,7 +88,7 @@ def upgrade():
             524288000,
             10737418240,
             true,
-            0.9,
+            90,
             false,
             'daily',
             '23:00'

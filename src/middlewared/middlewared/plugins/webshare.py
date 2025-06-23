@@ -38,7 +38,7 @@ class WebShareModel(sa.Model):
     srv_search_archive_max_size = sa.Column(sa.Integer(), default=524288000)
     srv_search_index_max_size = sa.Column(sa.Integer(), default=10737418240)
     srv_search_index_cleanup_enabled = sa.Column(sa.Boolean(), default=True)
-    srv_search_index_cleanup_threshold = sa.Column(sa.Float(), default=0.9)
+    srv_search_index_cleanup_threshold = sa.Column(sa.Integer(), default=90)  # Stored as percentage
     srv_search_pruning_enabled = sa.Column(sa.Boolean(), default=False)
     srv_search_pruning_schedule = sa.Column(sa.String(20), default='daily')
     srv_search_pruning_start_time = sa.Column(sa.String(10), default='23:00')
@@ -164,10 +164,10 @@ class WebShareService(SystemServiceService):
 
         # Validate numeric ranges
         if data.get('search_index_cleanup_threshold') is not None:
-            if not 0.0 <= data['search_index_cleanup_threshold'] <= 1.0:
+            if not 0 <= data['search_index_cleanup_threshold'] <= 100:
                 verrors.add(
                     'webshare_update.search_index_cleanup_threshold',
-                    'Threshold must be between 0.0 and 1.0'
+                    'Threshold must be between 0 and 100 (percentage)'
                 )
 
         verrors.check()
@@ -347,7 +347,7 @@ class WebShareService(SystemServiceService):
                     'max_index_size': config['search_index_max_size'],
                     'max_document_count': 1000000,
                     'cleanup_policy': 'lru',
-                    'cleanup_threshold': config['search_index_cleanup_threshold'],
+                    'cleanup_threshold': config['search_index_cleanup_threshold'] / 100.0,
                     'enable_auto_cleanup': config['search_index_cleanup_enabled'],
                     'cleanup_cooldown_minutes': 5,
                     'cleanup_target': 0.8

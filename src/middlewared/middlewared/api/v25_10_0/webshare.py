@@ -48,8 +48,8 @@ class WebShareEntry(BaseModel):
     """Maximum search index size in bytes (default: 10GB)."""
     search_index_cleanup_enabled: bool = True
     """Enable automatic cleanup when index is full."""
-    search_index_cleanup_threshold: float = 0.9
-    """Cleanup threshold as percentage of max size (0.0-1.0)."""
+    search_index_cleanup_threshold: int = 90
+    """Cleanup threshold as percentage of max size (0-100)."""
     search_pruning_enabled: bool = False
     """Enable periodic pruning of deleted files from index."""
     search_pruning_schedule: Literal['hourly', 'daily', 'weekly'] = 'daily'
