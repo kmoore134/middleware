@@ -422,6 +422,7 @@ class WebShareService(SystemServiceService):
         if errors:
             raise CallError('\n'.join(errors))
 
+    @private
     async def before_start(self):
         """Called before starting the service."""
         await self.check_configuration()
