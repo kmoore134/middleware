@@ -12,7 +12,6 @@ from middlewared.api.current import (
 )
 from middlewared.schema import ValidationErrors
 from middlewared.service import CallError, SystemServiceService, private
-from middlewared.utils.zfs import ZFSException
 
 
 class WebShareModel(sa.Model):
