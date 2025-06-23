@@ -1,4 +1,3 @@
-import errno
 import json
 import os
 import pathlib
@@ -233,28 +232,30 @@ class WebShareService(SystemServiceService):
                     dataset = f'{parent_dataset}/{dataset_suffix}'
 
                     # Create parent if needed
-                    try:
+                    parent_exists = await self.middleware.call(
+                        'zfs.dataset.query',
+                        [['name', '=', parent_dataset]]
+                    )
+                    if not parent_exists:
                         await self.middleware.call(
                             'zfs.dataset.create', {
                                 'name': parent_dataset,
                                 'properties': {'mountpoint': 'none'}
                             }
                         )
-                    except CallError as e:
-                        if e.errno != errno.EEXIST:
-                            raise
 
                     # Create dataset
-                    try:
+                    dataset_exists = await self.middleware.call(
+                        'zfs.dataset.query',
+                        [['name', '=', dataset]]
+                    )
+                    if not dataset_exists:
                         await self.middleware.call(
                             'zfs.dataset.create', {
                                 'name': dataset,
                                 'properties': properties
                             }
                         )
-                    except CallError as e:
-                        if e.errno != errno.EEXIST:
-                            raise
 
     @private
     async def _generate_config_files(self):
