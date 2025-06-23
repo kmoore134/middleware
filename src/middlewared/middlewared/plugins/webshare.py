@@ -237,46 +237,46 @@ class WebShareService(SystemServiceService):
                             'zfs.dataset.delete', old_dataset, {'recursive': True}
                         )
 
-                # Create new dataset
-                if new_pool:
-                    parent_dataset = f'{new_pool}/.webshare-private'
-                    dataset = f'{parent_dataset}/{dataset_suffix}'
+            # Create or update dataset if pool is set
+            if new_pool:
+                parent_dataset = f'{new_pool}/.webshare-private'
+                dataset = f'{parent_dataset}/{dataset_suffix}'
 
-                    # Create parent if needed
-                    parent_exists = await self.middleware.call(
-                        'zfs.dataset.query',
-                        [['name', '=', parent_dataset]]
+                # Create parent if needed
+                parent_exists = await self.middleware.call(
+                    'zfs.dataset.query',
+                    [['name', '=', parent_dataset]]
+                )
+                if not parent_exists:
+                    await self.middleware.call(
+                        'zfs.dataset.create', {
+                            'name': parent_dataset,
+                            'properties': {'mountpoint': 'none'}
+                        }
                     )
-                    if not parent_exists:
-                        await self.middleware.call(
-                            'zfs.dataset.create', {
-                                'name': parent_dataset,
-                                'properties': {'mountpoint': 'none'}
-                            }
-                        )
 
-                    # Create dataset
-                    dataset_exists = await self.middleware.call(
-                        'zfs.dataset.query',
-                        [['name', '=', dataset]]
+                # Create dataset
+                dataset_exists = await self.middleware.call(
+                    'zfs.dataset.query',
+                    [['name', '=', dataset]]
+                )
+                if not dataset_exists:
+                    # Add mountpoint to properties
+                    dataset_properties = properties.copy()
+                    dataset_properties['mountpoint'] = mount_paths[dataset_suffix]
+
+                    await self.middleware.call(
+                        'zfs.dataset.create', {
+                            'name': dataset,
+                            'properties': dataset_properties
+                        }
                     )
-                    if not dataset_exists:
-                        # Add mountpoint to properties
-                        dataset_properties = properties.copy()
-                        dataset_properties['mountpoint'] = mount_paths[dataset_suffix]
-
-                        await self.middleware.call(
-                            'zfs.dataset.create', {
-                                'name': dataset,
-                                'properties': dataset_properties
-                            }
-                        )
-                    else:
-                        # Update mountpoint if dataset exists
-                        await self.middleware.call(
-                            'zfs.dataset.update', dataset,
-                            {'properties': {'mountpoint': {'value': mount_paths[dataset_suffix]}}}
-                        )
+                else:
+                    # Update mountpoint if dataset exists
+                    await self.middleware.call(
+                        'zfs.dataset.update', dataset,
+                        {'properties': {'mountpoint': {'value': mount_paths[dataset_suffix]}}}
+                    )
 
     @private
     async def _generate_config_files(self):
