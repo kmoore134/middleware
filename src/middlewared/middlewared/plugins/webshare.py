@@ -203,12 +203,22 @@ class WebShareService(SystemServiceService):
     @private
     async def _update_datasets(self, old_config, new_config):
         """Create or update WebShare private datasets."""
+        # Define mount paths
+        mount_paths = {
+            'bulk_download': '/var/cache/webshare/bulk_download',
+            'search-index': '/var/cache/webshare/index'
+        }
+
         dataset_configs = [
             ('bulk_download_pool', 'bulk_download', {'compression': 'lz4', 'atime': 'off'}),
             ('search_index_pool', 'search-index', {
                 'compression': 'lz4', 'atime': 'off', 'recordsize': '16K'
             })
         ]
+
+        # Create mount directories if they don't exist
+        for mount_path in mount_paths.values():
+            os.makedirs(mount_path, exist_ok=True)
 
         for pool_field, dataset_suffix, properties in dataset_configs:
             old_pool = old_config.get(pool_field)
@@ -218,13 +228,14 @@ class WebShareService(SystemServiceService):
                 # Remove old dataset if pool changed
                 if old_pool:
                     old_dataset = f'{old_pool}/.webshare-private/{dataset_suffix}'
-                    try:
+                    old_dataset_exists = await self.middleware.call(
+                        'zfs.dataset.query',
+                        [['name', '=', old_dataset]]
+                    )
+                    if old_dataset_exists:
                         await self.middleware.call(
                             'zfs.dataset.delete', old_dataset, {'recursive': True}
                         )
-                    except CallError as e:
-                        if e.errno != errno.ENOENT:
-                            raise
 
                 # Create new dataset
                 if new_pool:
@@ -250,11 +261,21 @@ class WebShareService(SystemServiceService):
                         [['name', '=', dataset]]
                     )
                     if not dataset_exists:
+                        # Add mountpoint to properties
+                        dataset_properties = properties.copy()
+                        dataset_properties['mountpoint'] = mount_paths[dataset_suffix]
+
                         await self.middleware.call(
                             'zfs.dataset.create', {
                                 'name': dataset,
-                                'properties': properties
+                                'properties': dataset_properties
                             }
+                        )
+                    else:
+                        # Update mountpoint if dataset exists
+                        await self.middleware.call(
+                            'zfs.dataset.update', dataset,
+                            {'properties': {'mountpoint': {'value': mount_paths[dataset_suffix]}}}
                         )
 
     @private
@@ -262,29 +283,9 @@ class WebShareService(SystemServiceService):
         """Generate configuration files for WebShare services."""
         config = await self.config()
 
-        # Resolve dataset mount points
-        bulk_download_tmp = None
-        search_index_path = None
-
-        if config['bulk_download_pool']:
-            dataset = f"{config['bulk_download_pool']}/.webshare-private/bulk_download"
-            try:
-                props = await self.middleware.call(
-                    'zfs.dataset.get_instance', dataset
-                )
-                bulk_download_tmp = props['properties']['mountpoint']['value']
-            except CallError:
-                pass
-
-        if config['search_index_pool']:
-            dataset = f"{config['search_index_pool']}/.webshare-private/search-index"
-            try:
-                props = await self.middleware.call(
-                    'zfs.dataset.get_instance', dataset
-                )
-                search_index_path = props['properties']['mountpoint']['value']
-            except CallError:
-                pass
+        # Use fixed mount points
+        bulk_download_tmp = '/var/cache/webshare/bulk_download' if config['bulk_download_pool'] else None
+        search_index_path = '/var/cache/webshare/index' if config['search_index_pool'] else None
 
         # Create config directories
         config_dirs = [
