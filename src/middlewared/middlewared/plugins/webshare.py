@@ -27,7 +27,7 @@ class WebShareModel(sa.Model):
     srv_altroots = sa.Column(sa.JSON(dict), default={})
     srv_search_enabled = sa.Column(sa.Boolean(), default=False)
     srv_search_directories = sa.Column(sa.JSON(list), default=[])
-    srv_search_max_file_size = sa.Column(sa.BigInteger(), default=104857600)
+    srv_search_max_file_size = sa.Column(sa.Integer(), default=104857600)
     srv_search_supported_types = sa.Column(
         sa.JSON(list),
         default=['image', 'audio', 'video', 'document', 'archive', 'text', 'disk_image']
@@ -35,8 +35,8 @@ class WebShareModel(sa.Model):
     srv_search_worker_count = sa.Column(sa.Integer(), default=4)
     srv_search_archive_enabled = sa.Column(sa.Boolean(), default=True)
     srv_search_archive_max_depth = sa.Column(sa.Integer(), default=2)
-    srv_search_archive_max_size = sa.Column(sa.BigInteger(), default=524288000)
-    srv_search_index_max_size = sa.Column(sa.BigInteger(), default=10737418240)
+    srv_search_archive_max_size = sa.Column(sa.Integer(), default=524288000)
+    srv_search_index_max_size = sa.Column(sa.Integer(), default=10737418240)
     srv_search_index_cleanup_enabled = sa.Column(sa.Boolean(), default=True)
     srv_search_index_cleanup_threshold = sa.Column(sa.Float(), default=0.9)
     srv_search_pruning_enabled = sa.Column(sa.Boolean(), default=False)
