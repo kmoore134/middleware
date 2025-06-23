@@ -54,7 +54,7 @@ class WebShareService(SystemServiceService):
         role_prefix = 'WEBSHARE'
         entry = WebShareEntry
 
-    @api_method(WebShareValidateArgs, WebShareValidateResult)
+    @api_method(WebShareValidateArgs, WebShareValidateResult, roles=['SHARING_READ'])
     async def validate(self, data):
         """
         Validate WebShare configuration without saving.
@@ -63,7 +63,10 @@ class WebShareService(SystemServiceService):
         config.update(data)
         await self._validate(config)
 
-    @api_method(WebShareUpdateArgs, WebShareUpdateResult, audit='Update WebShare configuration')
+    @api_method(
+        WebShareUpdateArgs, WebShareUpdateResult,
+        audit='Update WebShare configuration', roles=['SHARING_WRITE']
+    )
     async def do_update(self, data):
         """
         Update WebShare service configuration.
