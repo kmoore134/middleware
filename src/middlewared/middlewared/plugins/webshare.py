@@ -51,7 +51,7 @@ class WebShareService(SystemServiceService):
         service = 'webshare'
         datastore_prefix = 'srv_'
         cli_namespace = 'service.webshare'
-        role_prefix = 'WEBSHARE'
+        role_prefix = 'SHARING'
         entry = WebShareEntry
 
     @api_method(WebShareValidateArgs, WebShareValidateResult, roles=['SHARING_READ'])
