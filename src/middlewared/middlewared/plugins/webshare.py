@@ -1,6 +1,8 @@
 import json
 import os
 import pathlib
+import pwd
+import grp
 
 import middlewared.sqlalchemy as sa
 
@@ -103,6 +105,9 @@ class WebShareService(SystemServiceService):
 
         # Generate configuration files
         await self._generate_config_files()
+
+        # Set directory permissions
+        await self._set_directory_permissions()
 
         # Reload service if running
         if await self.middleware.call('service.started', 'webshare'):
@@ -223,6 +228,9 @@ class WebShareService(SystemServiceService):
         for mount_path in mount_paths.values():
             os.makedirs(mount_path, exist_ok=True)
 
+        # Set initial permissions after creating directories
+        await self._set_directory_permissions()
+
         for pool_field, dataset_suffix, properties in dataset_configs:
             old_pool = old_config.get(pool_field)
             new_pool = new_config.get(pool_field)
@@ -280,6 +288,42 @@ class WebShareService(SystemServiceService):
                         'zfs.dataset.update', dataset,
                         {'properties': {'mountpoint': {'value': mount_paths[dataset_suffix]}}}
                     )
+
+    @private
+    async def _set_directory_permissions(self):
+        """Set proper ownership and permissions for WebShare directories."""
+        # Set ownership for /var/cache/webshare/index to truesearch:truesearch
+        index_dir = '/var/cache/webshare/index'
+        if os.path.exists(index_dir):
+            try:
+                # Get truesearch user and group IDs
+                truesearch_uid = pwd.getpwnam('truesearch').pw_uid
+                truesearch_gid = grp.getgrnam('truesearch').gr_gid
+
+                # Change ownership
+                os.chown(index_dir, truesearch_uid, truesearch_gid)
+
+                # Also change ownership recursively for all files/dirs inside
+                for root, dirs, files in os.walk(index_dir):
+                    for d in dirs:
+                        os.chown(os.path.join(root, d), truesearch_uid, truesearch_gid)
+                    for f in files:
+                        os.chown(os.path.join(root, f), truesearch_uid, truesearch_gid)
+            except (KeyError, OSError) as e:
+                self.middleware.logger.warning(
+                    f'Failed to set ownership for {index_dir}: {e}'
+                )
+
+        # Set permissions for /var/cache/webshare/bulk_download to 777
+        bulk_download_dir = '/var/cache/webshare/bulk_download'
+        if os.path.exists(bulk_download_dir):
+            try:
+                # Set permissions to 777 (rwxrwxrwx)
+                os.chmod(bulk_download_dir, 0o777)
+            except OSError as e:
+                self.middleware.logger.warning(
+                    f'Failed to set permissions for {bulk_download_dir}: {e}'
+                )
 
     @private
     async def _generate_config_files(self):
@@ -440,3 +484,4 @@ class WebShareService(SystemServiceService):
         """Called before starting the service."""
         await self.check_configuration()
         await self._generate_config_files()
+        await self._set_directory_permissions()
