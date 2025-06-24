@@ -26,6 +26,9 @@ class WebShareEntry(BaseModel):
     altroots: dict[str, str]
     """Alternative root paths for file system access. Keys and values must be unique.
     Values must be paths under /mnt/<poolname>."""
+    altroots_metadata: dict[str, dict[str, bool]] = {}
+    """Metadata for alternative roots. Keys match altroots keys. 
+    Each value is a dict containing metadata like {'search_indexed': bool}."""
     search_enabled: bool = False
     """Enable file search and indexing functionality."""
     search_directories: list[str]

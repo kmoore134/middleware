@@ -24,6 +24,7 @@ class WebShareModel(sa.Model):
     srv_bulk_download_pool = sa.Column(sa.String(255), nullable=True)
     srv_search_index_pool = sa.Column(sa.String(255), nullable=True)
     srv_altroots = sa.Column(sa.JSON(dict), default={})
+    srv_altroots_metadata = sa.Column(sa.JSON(dict), default={})
     srv_search_enabled = sa.Column(sa.Boolean(), default=False)
     srv_search_directories = sa.Column(sa.JSON(list), default=[])
     srv_search_max_file_size = sa.Column(sa.Integer(), default=104857600)
@@ -334,8 +335,16 @@ class WebShareService(SystemServiceService):
                 'weekly': 168
             }
 
+            # Include WebShare paths that have search_indexed enabled
+            search_dirs = list(config['search_directories'])
+            altroots_metadata = config.get('altroots_metadata', {})
+            for name, path in config['altroots'].items():
+                if altroots_metadata.get(name, {}).get('search_indexed', True):
+                    if path not in search_dirs:
+                        search_dirs.append(path)
+
             search_config = {
-                'directories': config['search_directories'],
+                'directories': search_dirs,
                 'index_path': search_index_path or './index',
                 'log_level': config['log_level'],
                 'max_file_size': config['search_max_file_size'],
