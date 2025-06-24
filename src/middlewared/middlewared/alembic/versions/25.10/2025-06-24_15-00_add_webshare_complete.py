@@ -1,22 +1,33 @@
-"""Add webshare service configuration table
+"""Add complete WebShare functionality
 
-Revision ID: e8c7f5d2b9a1
-Revises: add_user_webshare
-Create Date: 2025-06-19 11:00:00.000000
+Revision ID: add_webshare_complete
+Revises: 940b79ac591f
+Create Date: 2025-06-24 15:00:00.000000+00:00
 
+This migration combines all WebShare-related schema changes:
+1. Add webshare boolean to user accounts
+2. Create webshare service configuration table
+3. Add webshare to services list
+4. Add altroots_metadata column
 """
 from alembic import op
 import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e8c7f5d2b9a1'
-down_revision = 'add_user_webshare'
+revision = 'add_webshare_complete'
+down_revision = '940b79ac591f'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    # 1. Add user webshare boolean column
+    with op.batch_alter_table('account_bsdusers', schema=None) as batch_op:
+        batch_op.add_column(sa.Column('bsdusr_webshare', sa.Boolean(),
+                                      nullable=False, server_default='0'))
+
+    # 2. Create webshare service configuration table
     op.create_table(
         'services_webshare',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -27,6 +38,7 @@ def upgrade():
         sa.Column('srv_bulk_download_pool', sa.String(length=255), nullable=True),
         sa.Column('srv_search_index_pool', sa.String(length=255), nullable=True),
         sa.Column('srv_altroots', sa.JSON(), nullable=False),
+        sa.Column('srv_altroots_metadata', sa.JSON(), nullable=False),
         sa.Column('srv_search_enabled', sa.Boolean(), nullable=False),
         sa.Column('srv_search_directories', sa.JSON(), nullable=False),
         sa.Column('srv_search_max_file_size', sa.Integer(), nullable=False),
@@ -44,7 +56,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id')
     )
 
-    # Insert default configuration
+    # 3. Insert default webshare configuration
     op.execute("""
         INSERT INTO services_webshare (
             id,
@@ -55,6 +67,7 @@ def upgrade():
             srv_bulk_download_pool,
             srv_search_index_pool,
             srv_altroots,
+            srv_altroots_metadata,
             srv_search_enabled,
             srv_search_directories,
             srv_search_max_file_size,
@@ -78,6 +91,7 @@ def upgrade():
             NULL,
             NULL,
             '{}',
+            '{}',
             false,
             '[]',
             104857600,
@@ -95,6 +109,17 @@ def upgrade():
         )
     """)
 
+    # 4. Add webshare to the services_services table
+    op.execute("INSERT INTO services_services (srv_service, srv_enable) VALUES ('webshare', 0)")
+
 
 def downgrade():
+    # Remove webshare from services_services
+    op.execute("DELETE FROM services_services WHERE srv_service = 'webshare'")
+
+    # Drop webshare service configuration table
     op.drop_table('services_webshare')
+
+    # Remove user webshare column
+    with op.batch_alter_table('account_bsdusers', schema=None) as batch_op:
+        batch_op.drop_column('bsdusr_webshare')
