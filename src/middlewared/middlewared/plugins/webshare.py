@@ -476,7 +476,7 @@ class WebShareService(SystemServiceService):
             await self._update_datasets({}, config)
             config_updated = True
 
-        if not config['search_index_pool'] and config['search_enabled'] and available_pools:
+        if not config['search_index_pool'] and available_pools:
             config['search_index_pool'] = available_pools[0]
             # Update the configuration with the selected pool
             await self.middleware.call(
