@@ -451,11 +451,58 @@ class WebShareService(SystemServiceService):
         config = await self.config()
         errors = []
 
-        # Check if required pools are configured
-        if not config['bulk_download_pool']:
-            errors.append('Bulk download pool must be configured')
-        if not config['search_index_pool'] and config['search_enabled']:
-            errors.append('Search index pool must be configured when search is enabled')
+        # Get available pools for automatic selection if needed
+        boot_pool = await self.middleware.call('boot.pool_name')
+        pools = await self.middleware.call('pool.query', [['status', '!=', 'OFFLINE']])
+        available_pools = [p['name'] for p in pools if p['name'] != boot_pool]
+
+        # Auto-select first available pool if not configured
+        config_updated = False
+
+        if not config['bulk_download_pool'] and available_pools:
+            config['bulk_download_pool'] = available_pools[0]
+            # Update the configuration with the selected pool
+            await self.middleware.call(
+                'datastore.update',
+                self._config.datastore,
+                config['id'],
+                {'bulk_download_pool': available_pools[0]},
+                {'prefix': self._config.datastore_prefix}
+            )
+            self.middleware.logger.info(
+                f'Automatically selected pool "{available_pools[0]}" for bulk download'
+            )
+            # Update datasets for the newly selected pool
+            await self._update_datasets({}, config)
+            config_updated = True
+
+        if not config['search_index_pool'] and config['search_enabled'] and available_pools:
+            config['search_index_pool'] = available_pools[0]
+            # Update the configuration with the selected pool
+            await self.middleware.call(
+                'datastore.update',
+                self._config.datastore,
+                config['id'],
+                {'search_index_pool': available_pools[0]},
+                {'prefix': self._config.datastore_prefix}
+            )
+            self.middleware.logger.info(
+                f'Automatically selected pool "{available_pools[0]}" for search index'
+            )
+            # Update datasets for the newly selected pool
+            await self._update_datasets({}, config)
+            config_updated = True
+
+        # Regenerate config files if pools were auto-selected
+        if config_updated:
+            await self._generate_config_files()
+            await self._set_directory_permissions()
+
+        # Check if required pools are configured (after auto-selection)
+        if not config['bulk_download_pool'] and not available_pools:
+            errors.append('No available pools found for bulk download. Please import a pool.')
+        if not config['search_index_pool'] and config['search_enabled'] and not available_pools:
+            errors.append('No available pools found for search index. Please import a pool or disable search.')
 
         # Check if datasets exist and are mounted
         if config['bulk_download_pool']:
